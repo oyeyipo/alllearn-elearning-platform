@@ -6,12 +6,34 @@ from django.views.generic.base import TemplateResponseMixin, View
 from django.views.generic.edit import CreateView, DeleteView, UpdateView
 from django.views.generic.list import ListView
 
-from braces.views import LoginRequiredMixin, PermissionRequiredMixin
+from braces.views import (CsrfExemptMixin, JsonRequestResponseMixin,
+                          LoginRequiredMixin, PermissionRequiredMixin)
 
 from .forms import ModuleFormset
 from .models import Content, Course, Module
+from django.db.models import Count
+from .models import Subject
 
 # Create your views here.
+
+
+class ModuleOrderView(CsrfExemptMixin,
+                        JsonRequestResponseMixin,
+                        View):
+    def post(self, request):
+        for id, order in self.request_json.items():
+            Module.objects.filter(id=id,
+                        course__owner=request.user).update(order=order)
+        return self.render_json_response({'saved': 'OK'})
+
+class ContentOrderView(CsrfExemptMixin,
+                        JsonRequestResponseMixin,
+                        View):
+    def post(self, request):
+        for id, order in self.request_json.items():
+            Content.objects.filter(id=id,
+                        module__course__owner=request.user).update(order=order)
+        return self.render_json_response({'saved': 'OK'})
 
 class ModuleContentListView(TemplateResponseMixin, View):
     template_name = 'courses/manage/module/content_list.html'
